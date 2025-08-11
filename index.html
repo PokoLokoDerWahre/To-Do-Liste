@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="de" class="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktive To-Do-Liste</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        /* Animation für das Hinzufügen von Aufgaben */
+        .task-enter {
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Styling für Drag & Drop */
+        .dragging {
+            opacity: 0.5;
+            transform: scale(1.05);
+        }
+        .drag-over {
+            border-style: dashed;
+            border-color: #3b82f6; /* blue-500 */
+        }
+    </style>
+    <script>
+        // Tailwind Dark Mode Konfiguration
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+
+    <div class="container mx-auto max-w-5xl p-4 sm:p-6 lg:p-8">
+        
+        <header class="text-center mb-8 relative">
+            <h1 class="text-4xl font-bold text-gray-900 dark:text-white">Meine To-Do-Liste</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-2">Organisiere deine Aufgaben nach Priorität und Kategorie.</p>
+            
+            <!-- Dark Mode Toggle -->
+            <button id="theme-toggle" class="absolute top-0 right-0 p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none">
+                <svg id="theme-toggle-dark-icon" class="hidden h-6 w-6" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                <svg id="theme-toggle-light-icon" class="hidden h-6 w-6" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm-.707 10.607a1 1 0 011.414 0l.707-.707a1 1 0 111.414 1.414l-.707.707a1 1 0 01-1.414 0zM2 11a1 1 0 100-2H1a1 1 0 100 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
+            </button>
+        </header>
+
+        <!-- Formular zum Hinzufügen neuer Aufgaben -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg mb-8">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">Neue Aufgabe hinzufügen</h2>
+            <form id="task-form" class="grid sm:grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div class="md:col-span-2">
+                    <label for="task-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Aufgabe</label>
+                    <input type="text" id="task-input" placeholder="Was steht an?" class="w-full p-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                    <p id="task-error" class="text-red-500 text-sm mt-1 hidden">Bitte gib eine Aufgabe ein.</p>
+                </div>
+                <div>
+                    <label for="category-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kategorie</label>
+                    <input id="category-input" list="category-list" placeholder="z.B. Arbeit" class="w-full p-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                    <datalist id="category-list"></datalist>
+                </div>
+                <div>
+                    <label for="priority-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Priorität</label>
+                    <select id="priority-select" class="w-full p-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                        <option value="high" class="text-red-600 font-medium">Wichtig</option>
+                        <option value="medium" class="text-yellow-600 font-medium">Bald erledigen</option>
+                        <option value="low" class="text-green-600 font-medium">Erinnerung</option>
+                    </select>
+                </div>
+                <div class="md:col-span-4">
+                     <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform transform hover:scale-105">
+                        Hinzufügen
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Aufgabenlisten nach Priorität -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div id="high" class="p-4 rounded-lg bg-gray-200 dark:bg-gray-800/50 transition-colors duration-300">
+                <h3 class="text-xl font-semibold mb-4 flex items-center"><span class="w-3 h-3 bg-red-500 rounded-full mr-3"></span>Wichtig</h3>
+                <div id="high-priority-tasks" class="space-y-3 min-h-[100px] border-2 border-transparent rounded-lg p-2"></div>
+            </div>
+            <div id="medium" class="p-4 rounded-lg bg-gray-200 dark:bg-gray-800/50 transition-colors duration-300">
+                <h3 class="text-xl font-semibold mb-4 flex items-center"><span class="w-3 h-3 bg-yellow-500 rounded-full mr-3"></span>Bald erledigen</h3>
+                <div id="medium-priority-tasks" class="space-y-3 min-h-[100px] border-2 border-transparent rounded-lg p-2"></div>
+            </div>
+            <div id="low" class="p-4 rounded-lg bg-gray-200 dark:bg-gray-800/50 transition-colors duration-300">
+                <h3 class="text-xl font-semibold mb-4 flex items-center"><span class="w-3 h-3 bg-green-500 rounded-full mr-3"></span>Erinnerung</h3>
+                <div id="low-priority-tasks" class="space-y-3 min-h-[100px] border-2 border-transparent rounded-lg p-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM-Elemente
+            const taskForm = document.getElementById('task-form');
+            const taskInput = document.getElementById('task-input');
+            const categoryInput = document.getElementById('category-input');
+            const categoryList = document.getElementById('category-list');
+            const prioritySelect = document.getElementById('priority-select');
+            const taskError = document.getElementById('task-error');
+            const taskContainers = {
+                high: document.getElementById('high-priority-tasks'),
+                medium: document.getElementById('medium-priority-tasks'),
+                low: document.getElementById('low-priority-tasks'),
+            };
+
+            // Lade Daten aus dem localStorage
+            let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+            let categories = JSON.parse(localStorage.getItem('categories')) || ['Privat', 'Arbeit', 'Einkaufen'];
+
+            // --- Dark Mode Logik ---
+            const themeToggleBtn = document.getElementById('theme-toggle');
+            const darkIcon = document.getElementById('theme-toggle-dark-icon');
+            const lightIcon = document.getElementById('theme-toggle-light-icon');
+
+            // Setze initiales Theme
+            if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                lightIcon.classList.remove('hidden');
+            } else {
+                darkIcon.classList.remove('hidden');
+            }
+
+            themeToggleBtn.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark');
+                darkIcon.classList.toggle('hidden');
+                lightIcon.classList.toggle('hidden');
+                if (document.documentElement.classList.contains('dark')) {
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    localStorage.setItem('theme', 'light');
+                }
+            });
+
+            // --- Hilfsfunktionen ---
+            const saveTasks = () => localStorage.setItem('tasks', JSON.stringify(tasks));
+            const saveCategories = () => localStorage.setItem('categories', JSON.stringify(categories));
+
+            const updateCategoryDatalist = () => {
+                categoryList.innerHTML = '';
+                [...new Set(categories)].forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat;
+                    categoryList.appendChild(option);
+                });
+            };
+            
+            // --- Drag & Drop Logik ---
+            let draggedTaskId = null;
+
+            function handleDragStart(e) {
+                draggedTaskId = e.target.dataset.id;
+                e.target.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            }
+
+            function handleDragEnd(e) {
+                e.target.classList.remove('dragging');
+                draggedTaskId = null;
+            }
+
+            function handleDragOver(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                e.currentTarget.classList.add('drag-over');
+            }
+            
+            function handleDragLeave(e) {
+                e.currentTarget.classList.remove('drag-over');
+            }
+
+            function handleDrop(e) {
+                e.preventDefault();
+                e.currentTarget.classList.remove('drag-over');
+                if (!draggedTaskId) return;
+
+                const targetPriority = e.currentTarget.parentElement.id;
+                const task = tasks.find(t => t.id == draggedTaskId);
+                if (task && task.priority !== targetPriority) {
+                    task.priority = targetPriority;
+                    saveTasks();
+                    renderTasks();
+                }
+            }
+
+            // --- Hauptfunktion zum Rendern ---
+            const renderTasks = () => {
+                Object.values(taskContainers).forEach(c => c.innerHTML = '');
+
+                tasks.forEach(task => {
+                    const taskElement = document.createElement('div');
+                    taskElement.className = `bg-white dark:bg-gray-700 p-4 rounded-lg shadow-md flex items-start justify-between gap-4 task-enter cursor-move`;
+                    taskElement.dataset.id = task.id;
+                    taskElement.draggable = true;
+
+                    taskElement.addEventListener('dragstart', handleDragStart);
+                    taskElement.addEventListener('dragend', handleDragEnd);
+
+                    const priorityClasses = {
+                        high: 'border-l-4 border-red-500',
+                        medium: 'border-l-4 border-yellow-500',
+                        low: 'border-l-4 border-green-500'
+                    };
+                    taskElement.classList.add(...priorityClasses[task.priority].split(' '));
+                    if (task.completed) taskElement.classList.add('opacity-60');
+
+                    taskElement.innerHTML = `
+                        <div class="flex-grow">
+                            <p class="font-medium text-gray-800 dark:text-gray-100 ${task.completed ? 'line-through' : ''}">${task.text}</p>
+                            <span class="text-xs bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-full mt-1 inline-block">${task.category}</span>
+                        </div>
+                        <div class="flex items-center space-x-2 flex-shrink-0">
+                            <button class="complete-btn p-2 text-gray-400 hover:text-green-500 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                            </button>
+                            <button class="delete-btn p-2 text-gray-400 hover:text-red-500 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                        </div>
+                    `;
+                    taskContainers[task.priority].appendChild(taskElement);
+                });
+            };
+
+            // --- Event Listener ---
+            taskForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const taskText = taskInput.value.trim();
+                const categoryValue = categoryInput.value.trim() || 'Sonstiges';
+                
+                if (taskText === '') {
+                    taskError.classList.remove('hidden');
+                    taskInput.focus();
+                    return;
+                }
+                
+                taskError.classList.add('hidden');
+
+                const newTask = {
+                    id: Date.now(),
+                    text: taskText,
+                    category: categoryValue,
+                    priority: prioritySelect.value,
+                    completed: false
+                };
+                tasks.push(newTask);
+                
+                if (!categories.includes(categoryValue)) {
+                    categories.push(categoryValue);
+                    saveCategories();
+                    updateCategoryDatalist();
+                }
+                
+                saveTasks();
+                renderTasks();
+                taskForm.reset();
+                categoryInput.value = '';
+                taskInput.focus();
+            });
+            
+            document.querySelector('.container').addEventListener('click', (e) => {
+                const taskElement = e.target.closest('[data-id]');
+                if (!taskElement) return;
+                const taskId = Number(taskElement.dataset.id);
+
+                if (e.target.closest('.delete-btn')) {
+                    tasks = tasks.filter(task => task.id !== taskId);
+                    saveTasks();
+                    renderTasks();
+                } else if (e.target.closest('.complete-btn')) {
+                    const task = tasks.find(task => task.id === taskId);
+                    if (task) {
+                        task.completed = !task.completed;
+                        saveTasks();
+                        renderTasks();
+                    }
+                }
+            });
+            
+            Object.values(taskContainers).forEach(container => {
+                container.addEventListener('dragover', handleDragOver);
+                container.addEventListener('dragleave', handleDragLeave);
+                container.addEventListener('drop', handleDrop);
+            });
+
+            // --- Initialisierung ---
+            updateCategoryDatalist();
+            renderTasks();
+        });
+    </script>
+
+</body>
+</html>
